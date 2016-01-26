@@ -1,0 +1,6 @@
+[HKEY_CLASSES_ROOT\Directory\Background\shell\filelist]
+@="Получить список файлов"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\filelist\command]
+@="Z:\\a.exe"
+
