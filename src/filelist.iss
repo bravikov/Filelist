@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "filelist"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Dmitry Bravikov"
 #define MyAppURL "www.bravikov.pro"
 #define MyAppExeName "filelist.exe"
@@ -61,9 +61,10 @@ Source: "..\build\filelist.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 [Registry]
 Root: "HKCR"; Subkey: "Directory\Background\shell\filelist"; ValueType: string; ValueData: "Получить список файлов"; Flags: uninsdeletekey
 Root: "HKCR"; Subkey: "Directory\Background\shell\filelist\command"; ValueType: string; ValueData: "{app}\{#MyAppExeName}"
+Root: "HKCR"; Subkey: "txtfile\shell\filelist"; ValueType: string; ValueData: "Создать папки из списка"; Flags: uninsdeletekey
+Root: "HKCR"; Subkey: "txtfile\shell\filelist\command"; ValueType: string; ValueData: "{app}\{#MyAppExeName} ""%1"""

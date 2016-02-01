@@ -1,9 +1,4 @@
-/* Build
- * For Linux:
- *     g++ --std='c++11' main.cpp
- * For Windows:
- *     i686-w64-mingw32-g++ --std='c++11' -static main.cpp
- * */
+const char * programVersion = "1.1.0";
 
 #include <iostream>
 #include <stdlib.h>
@@ -15,26 +10,136 @@
 #include <list>
 #include <algorithm>
 #include <fstream>
+#include <sys/stat.h>
 
 using std::cerr;
 using std::cout;
+using std::clog;
 using std::endl;
 using std::string;
 using std::bad_alloc;
 using std::list;
 using std::find;
 using std::fstream;
+using std::getline;
 
+enum Action {
+    ACTION_NOTHING,
+    ACTION_CREATE_FILE_LIST,
+    ACTION_CREATE_FOLDERS_FROM_LIST,
+};
+
+bool createDir(const string & dirName);
 string getWorkingDirectoryName();
+bool createFoldersFromList(const string & fileName);
+bool createFileList();
 void waitInput();
+void exitFailure();
 
-int main() {
+int main(int argc, char * argv[]) {
+    cerr << "Filelist version " << programVersion << "." << endl;
+
+    Action action = ACTION_NOTHING;
+
+    string fileName;
+
+    if (1 == argc) {
+        action = ACTION_CREATE_FILE_LIST;
+    }
+    else if (2 == argc) {
+        fileName = argv[1];
+        action = ACTION_CREATE_FOLDERS_FROM_LIST;
+    }
+    else {
+        cerr << "Bad arugments." << endl;
+    }
+
+    bool ok = false;
+
+    switch (action) {
+        default:
+            break;
+        case ACTION_NOTHING:
+            break;
+        case ACTION_CREATE_FILE_LIST:
+            ok = createFileList();
+            break;
+        case ACTION_CREATE_FOLDERS_FROM_LIST:
+            ok = createFoldersFromList(fileName);
+            break;
+        
+    }
+
+    if (!ok) {
+        exitFailure();
+    }
+
+    exit(EXIT_SUCCESS);
+}
+
+bool createDir(const string & dirName) {
+    int r = -1;
+
+    #if defined(os_linux)
+        r = mkdir(dirName.c_str(), 0775); // rwxrwxr-x
+    #elif defined(os_windows)
+        r = mkdir(dirName.c_str());
+    #else
+        #error "Unknown operating system."
+    #endif
+
+    if (0 == r) {
+        return true;
+    }
+
+    cerr << strerror(errno) << endl;
+
+    return false;
+}
+
+bool createFoldersFromList(const string & fileName) {
+    clog << "File: " << fileName << endl;
+
+    fstream folderList (fileName, fstream::in);
+
+    if (folderList.fail()) {
+        cerr << "File cannot be opened." << endl;
+        folderList.close();
+        return false;
+    }
+
+    list<string> dirNames;
+
+    while (!folderList.eof()) {
+        string line;
+
+        getline(folderList, line);
+
+        if (line.empty()) {
+            continue;
+        }
+
+        dirNames.push_back(line);
+    }
+
+    folderList.close();
+
+    dirNames.unique();
+
+    for (auto & dirName: dirNames) {
+        clog << "Create folder: " << dirName << endl;
+        createDir(dirName);
+    }
+
+    return true;
+}
+
+bool createFileList() {
     string workingDirectoryName = getWorkingDirectoryName();
 
     if (workingDirectoryName.empty()) {
         std::cerr << "Unknown working directory." << endl;
-        waitInput();
-        exit(EXIT_FAILURE);
+        return false;
     }
     
     DIR * workingDirectory = opendir(
@@ -43,8 +148,7 @@ int main() {
 
     if (workingDirectory == nullptr) {
         std::cerr << strerror(errno) << endl;
-        waitInput();
-        exit(EXIT_FAILURE);
+        return false;
     }
 
     list<string> fileNames;
@@ -64,7 +168,7 @@ int main() {
 
     /* Сохранить список в файл. */
 
-    std::fstream fs ("filelist.txt", fstream::out);
+    fstream fs ("filelist.txt", fstream::out);
 
     for (auto & fn: fileNames) {
         cout << fn << endl;
@@ -72,13 +176,20 @@ int main() {
     }
 
     fs.close();
-    
-    exit(EXIT_SUCCESS);
+
+    return true;
 }
 
 void waitInput() {
     cout << "Press Enter...";
     std::cin.get();
+}
+
+/* Завершает программу при неудачном выполнении, дает пользователю
+ * прочитать сообщение об ошибке. */
+void exitFailure() {
+    waitInput();
+    exit(EXIT_FAILURE);
 }
 
 string getWorkingDirectoryName() {
@@ -112,9 +223,7 @@ string getWorkingDirectoryName() {
             continue;
         }
 
-        std::cerr
-            << strerror(errno) << endl
-            << workingDirectory << endl;
+        cerr << strerror(errno) << endl << workingDirectory << endl;
         return string();
     }
 
